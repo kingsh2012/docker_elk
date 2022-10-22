@@ -1,0 +1,98 @@
+version: '3.2'
+
+services:
+  elasticsearch:
+    build:
+      context: elasticsearch/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    volumes:
+      - type: bind
+        source: /etc/localtime
+        target: /etc/localtime
+        read_only: true
+      - type: bind
+        source: ./elasticsearch/config/elasticsearch.yml
+        target: /usr/share/elasticsearch/config/elasticsearch.yml
+        read_only: true
+      - type: bind
+        source: ./elasticsearch/data
+        target: /usr/share/elasticsearch/data
+      - type: bind
+        source: ./elasticsearch/plugins
+        target: /usr/share/elasticsearch/plugins
+      - type: bind
+        source: ./elasticsearch/log 
+        target: /usr/share/elasticsearch/log
+      - type: bind
+        source: ./x-pack-core-7.5.0.jar
+        target: /usr/share/elasticsearch/modules/x-pack-core/x-pack-core-7.5.0.jar
+        read_only: true
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      ES_JAVA_OPTS: "-Xmx2g -Xms2g"
+      ELASTIC_PASSWORD: 1qaz2wsx
+      # Use single node discovery in order to disable production mode and avoid bootstrap checks
+      # see https://www.elastic.co/guide/en/elasticsearch/reference/current/bootstrap-checks.html
+      discovery.type: single-node
+    networks:
+      - elk
+
+#  logstash:
+#    build:
+#      context: logstash/
+#      args:
+#        ELK_VERSION: $ELK_VERSION
+#    volumes:
+#      - type: bind
+#        source: /etc/timezone
+#        target: /etc/timezone
+#        read_only: true
+#      - type: bind
+#        source: /etc/localtime
+#        target: /etc/localtime
+#        read_only: true
+#      - type: bind
+#        source: ./logstash/config/logstash.yml
+#        target: /usr/share/logstash/config/logstash.yml
+#        read_only: true
+#      - type: bind
+#        source: ./logstash/pipeline
+#        target: /usr/share/logstash/pipeline
+#        read_only: true
+#    ports:
+#      - "5000:5000"
+#      - "9600:9600"
+#    environment:
+#      LS_JAVA_OPTS: "-Xmx1g -Xms1g"
+#    networks:
+#      - elk
+#    depends_on:
+#      - elasticsearch
+
+  kibana:
+    build:
+      context: kibana/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    volumes:
+      - type: bind
+        source: /etc/localtime
+        target: /etc/localtime
+        read_only: true
+      - type: bind
+        source: ./kibana/config/kibana.yml
+        target: /usr/share/kibana/config/kibana.yml
+        read_only: true
+    ports:
+      - "5601:5601"
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
+
+networks:
+  elk:
+    driver: bridge
